@@ -28,13 +28,19 @@ class FMTryoutViewModel {
                 return
             }
             
-            for try await partialResponse in stream {
-                await MainActor.run {
-                    self.llmResponse = partialResponse.content
+            do {
+                for try await partialResponse in stream {
+                    await MainActor.run {
+                        self.llmResponse = partialResponse.content
+                    }
+                    
+                    
                 }
-                
+            } catch LanguageModelSession.GenerationError.guardrailViolation {
+                self.llmResponse = "I'm afraid I can't accept this message."
                 
             }
+            
             isResponding = session?.isResponding ?? false
             
         }
@@ -47,8 +53,12 @@ class FMTryoutViewModel {
         }
         
         Task {
-            let response = try await session?.respond(to: prompt)
-            self.llmResponse = response?.content ?? ""
+            do {
+                let response = try await session?.respond(to: prompt)
+                self.llmResponse = response?.content ?? ""
+            } catch LanguageModelSession.GenerationError.guardrailViolation {
+                self.llmResponse = "I'm afraid I can't accept this message."
+            }
         }
     }
     
